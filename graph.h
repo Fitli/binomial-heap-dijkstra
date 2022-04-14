@@ -20,5 +20,6 @@ typedef struct Graph {
 
 Graph *random_graph(int size, int c );
 void print_dot(Graph *graph);
+void destroy_graph(Graph *graph);
 
 #endif //BINOMIAL_HEAP_DIJKSTRA_GRAPH_H

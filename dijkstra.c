@@ -28,5 +28,6 @@ double path_lenght(Graph *graph, int start, int end) {
         }
     }
 
+    destroy_heap(heap);
     return lengths[end];
 }

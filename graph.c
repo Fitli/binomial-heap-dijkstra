@@ -10,7 +10,7 @@
 
 // creates random orieanted graph
 Graph *random_graph(int size, int c ) {
-    srand(time(NULL));
+    //srand(time(NULL));
 
     Graph *graph = malloc(sizeof(Graph));
     graph->num_edges = 0;
@@ -40,8 +40,14 @@ Graph *random_graph(int size, int c ) {
     return graph;
 }
 
+void destroy_graph(Graph *graph) {
+    free(graph->edges);
+    free(graph->starts);
+    free(graph);
+}
+
 void print_dot(Graph *graph) {
     for (int i = 0; i < graph->num_edges; i++) {
-        printf("%d -> %d\n", graph->edges[i].start, graph->edges[i].end);
+        printf("%d -> %d <%lf>\n", graph->edges[i].start, graph->edges[i].end, graph->edges[i].weight);
     }
 }
