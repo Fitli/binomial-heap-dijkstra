@@ -7,6 +7,6 @@
 
 #include "graph.h"
 
-double path_lenght(Graph graph, int start, int end);
+double path_lenght(Graph *graph, int start, int end);
 
 #endif //BINOMIAL_HEAP_DIJKSTRA_DIJKSTRA_H

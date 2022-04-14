@@ -5,11 +5,16 @@
 #include <stdio.h>
 #include "binomial_heap.h"
 
-void *pop(Heap heap) {
+Heap *empty_heap() {
+    return NULL; //TODO
+}
+
+int pop(Heap *heap) {
     //TODO
     return NULL;
 }
 
-void insert(Heap heap, void *data) {
+void insert(Heap *heap, int data, double key) {
+    //TODO
     return;
 }
