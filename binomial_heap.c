@@ -137,6 +137,25 @@ void merge(Heap *heap, Heap* added) {
     BinomialTree *to_add = NULL;
 
     while (tr_h || tr_a) {
+        // One tree is empty - add the roots of the other to the end of the output root list
+        if (tr_a == NULL) {
+            to_add = tr_h;
+        }
+        if (tr_h == NULL) {
+            to_add = tr_a;
+        }
+        if(to_add) {
+            if (last_new_root == NULL) {
+                output.first_root = to_add;
+                to_add->prev_sibling = NULL;
+            } else {
+                last_new_root->next_sibling = to_add;
+                to_add->prev_sibling = last_new_root;
+            }
+            break;
+        }
+
+        // add one new root
         if (tr_a == NULL || (tr_h != NULL && tr_h->order < tr_a->order)) {
             to_add = tr_h;
             tr_h = tr_h->next_sibling;
