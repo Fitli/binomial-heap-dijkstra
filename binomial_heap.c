@@ -70,6 +70,7 @@ int pop(Heap *heap) {
         children_heap->first_root = new_root;
         new_root->prev_sibling = new_root->next_sibling;
         new_root->next_sibling = next;
+        new_root->parent = NULL;
         next = new_root;
         new_root = new_root->prev_sibling;
     }
@@ -85,7 +86,7 @@ int pop(Heap *heap) {
     return result;
 }
 
-void insert(Heap *heap, int data, double key) {
+BinomialTree *insert(Heap *heap, int data, double key) {
     BinomialTree *small_tree = malloc(sizeof(BinomialTree));
     small_tree->data = data;
     small_tree->key = key;
@@ -93,6 +94,7 @@ void insert(Heap *heap, int data, double key) {
     small_tree->prev_sibling = NULL;
     small_tree->next_sibling = NULL;
     small_tree->child = NULL;
+    small_tree->parent = NULL;
 
 
     Heap *small_heap = empty_heap();
@@ -102,6 +104,7 @@ void insert(Heap *heap, int data, double key) {
 
     merge(heap, small_heap);
     free(small_heap);
+    return small_tree;
 }
 
 BinomialTree *merge_trees(BinomialTree *a, BinomialTree *b) {
@@ -111,6 +114,7 @@ BinomialTree *merge_trees(BinomialTree *a, BinomialTree *b) {
         b->next_sibling = a->child;
         b->prev_sibling = NULL;
         a->child = b;
+        b->parent = a;
         a->order++;
         return a;
     }
@@ -166,4 +170,30 @@ void merge(Heap *heap, Heap* added) {
     }
 
     *heap = output;
+}
+
+void swap_nodes(BinomialTree *a, BinomialTree *b) {
+    BinomialTree helper = *a;
+    a->parent = b->parent;
+    a->child = b->child;
+    a->next_sibling = b->next_sibling;
+    a->prev_sibling = b->prev_sibling;
+    a->order = b->order;
+
+    b->parent = helper.parent;
+    b->child = helper.child;
+    b->next_sibling = helper.next_sibling;
+    b->prev_sibling = helper.prev_sibling;
+    b->order = helper.order;
+}
+
+void lower_key(BinomialTree *node, double new_key) {
+    node->key = new_key;
+    BinomialTree *swap_with = node;
+    while (swap_with->parent != NULL && swap_with->parent->key < new_key) {
+        swap_with = swap_with->parent;
+    }
+    if (node != swap_with) {
+        swap_nodes(node, swap_with);
+    }
 }
