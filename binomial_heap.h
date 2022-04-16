@@ -7,6 +7,13 @@
 
 typedef struct BinomialTree BinomialTree;
 
+typedef struct BinomialHeapStats{
+    int root_removals;
+    int root_inserts;
+    int tree_merges;
+    int parent_child_swaps;
+} Stats;
+
 struct BinomialTree {
     int data;
     double key;
@@ -22,6 +29,8 @@ typedef struct BinomialHeap {
     int size;
     BinomialTree *first_root;
     BinomialTree *min;
+
+    Stats stats;
 } Heap;
 
 void destroy_heap(Heap *heap);
@@ -29,6 +38,7 @@ Heap *empty_heap();
 int pop(Heap *heap);
 BinomialTree *insert(Heap *heap, int data, double key);
 void merge(Heap *heap, Heap* added);
-void lower_key(BinomialTree *node, double new_key);
+void lower_key(BinomialTree *node, double new_key, Heap *heap);
+void dot_printer(const char *filename, Heap *heap);
 
 #endif //BINOMIAL_HEAP_DIJKSTRA_BINOMIAL_HEAP_H

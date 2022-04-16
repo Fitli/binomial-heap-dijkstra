@@ -11,6 +11,7 @@
 // creates random orieanted graph
 Graph *random_graph(int size, int c ) {
     //srand(time(NULL));
+    //srand(1);
 
     Graph *graph = malloc(sizeof(Graph));
     graph->num_edges = 0;
