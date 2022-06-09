@@ -10,12 +10,10 @@
 
 // creates random orieanted graph
 Graph *random_graph(int size, int c ) {
-    //srand(time(NULL));
-    //srand(1);
-
     Graph *graph = malloc(sizeof(Graph));
     graph->num_edges = 0;
     graph->num_nodes = size;
+    graph->c = c;
     int cap_edges = 128;
     graph->edges = malloc(sizeof(Edge) * cap_edges);
     graph->starts = malloc(sizeof(int) * (size + 1));

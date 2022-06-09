@@ -15,6 +15,7 @@ typedef struct Graph {
     Edge *edges;
     int num_edges;
     int num_nodes;
+    int c;
     int *starts;
 } Graph;
 

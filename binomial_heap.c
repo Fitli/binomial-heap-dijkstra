@@ -6,17 +6,26 @@
 #include <stdlib.h>
 #include "binomial_heap.h"
 
+#define LOG_OPERATIONS 0
+
 void destroy_tree(BinomialTree *root) {
     if(root == NULL) {
         return;
     }
     destroy_tree(root->child);
-    destroy_tree(root->next_sibling);
+    if(root->parent) {
+        destroy_tree(root->next_sibling);
+    }
     free(root);
 }
 
 void destroy_heap(Heap *heap) {
-    destroy_tree(heap->first_root);
+    BinomialTree *root = heap->first_root;
+    while(root) {
+        BinomialTree *next_root = root->next_sibling;
+        destroy_tree(heap->first_root);
+        root = next_root;
+    }
     free(heap);
 }
 
@@ -32,6 +41,7 @@ void remove_tree(Heap *heap, BinomialTree *root) {
     }
     heap->size -= 1 << root->order;
     heap->stats.root_removals++;
+    //destroy_tree(root);
 }
 
 Heap *empty_heap() {
@@ -44,6 +54,10 @@ Heap *empty_heap() {
     heap->stats.tree_merges = 0;
     heap->stats.root_removals = 0;
     heap->stats.root_inserts = 0;
+    heap->stats.decreases = 0;
+    heap->stats.inserts = 0;
+    heap->stats.pops = 0;
+    heap->stats.find_min_iters = 0;
 
     return heap;
 }
@@ -52,6 +66,7 @@ void find_min(Heap *heap) {
     BinomialTree *root = heap->first_root;
     heap->min = root;
     while (root != NULL) {
+        heap->stats.find_min_iters++;
         if (root->key < heap->min->key) {
             heap->min = root;
         }
@@ -60,10 +75,13 @@ void find_min(Heap *heap) {
 }
 
 int pop(Heap *heap) {
+    heap->stats.pops++;
     if(heap->min == NULL) {
         return -1;
     }
     int result = heap->min->data;
+    if (LOG_OPERATIONS)
+        printf("pop %d (%f)\n", result, heap->min->key);
     BinomialTree *removed_root = heap->min;
 
     Heap *children_heap = empty_heap();
@@ -84,16 +102,19 @@ int pop(Heap *heap) {
 
     remove_tree(heap, removed_root);
 
+    find_min(heap);
+
     merge(heap, children_heap);
     free(children_heap);
-    //free(removed_root);
-
-    find_min(heap);
+    free(removed_root);
 
     return result;
 }
 
 BinomialTree *insert(Heap *heap, int data, double key) {
+    heap->stats.inserts++;
+    if (LOG_OPERATIONS)
+        printf("insert %d (%f)\n", data, key);
     BinomialTree *small_tree = malloc(sizeof(BinomialTree));
     small_tree->data = data;
     small_tree->key = key;
@@ -116,7 +137,7 @@ BinomialTree *insert(Heap *heap, int data, double key) {
 }
 
 BinomialTree *merge_trees(BinomialTree *a, BinomialTree *b, Stats *stats) {
-    if(a->key < b->key) {
+    if(a->key <= b->key) {
         stats->tree_merges++;
         if (a->child)
             a->child->prev_sibling = b;
@@ -136,6 +157,10 @@ Stats merge_stats(Stats a, Stats b) {
     output.root_removals = a.root_removals + b.root_removals;
     output.parent_child_swaps = a.parent_child_swaps + b.parent_child_swaps;
     output.tree_merges = a.tree_merges + b.tree_merges;
+    output.find_min_iters = a.find_min_iters + b.find_min_iters;
+    output.inserts = a.inserts+b.inserts;
+    output.pops = a.pops + b.pops;
+    output.decreases = a.decreases + b.decreases;
     return output;
 }
 
@@ -185,6 +210,7 @@ void merge(Heap *heap, Heap* added) {
         } else {
             BinomialTree *next_a = tr_a->next_sibling;
             BinomialTree *next_h = tr_h->next_sibling;
+            heap->stats.tree_merges++;
             to_add = merge_trees(tr_h, tr_a, &output.stats);
             tr_h = next_h;
             tr_a = next_a;
@@ -194,13 +220,14 @@ void merge(Heap *heap, Heap* added) {
             output.first_root = to_add;
             to_add->prev_sibling = NULL;
         } else if (to_add->order == last_new_root->order) {
-            to_add = merge_trees(to_add, last_new_root, &output.stats);
-            if(last_new_root->prev_sibling == NULL) {
+            BinomialTree *last_root_prev_sibl = last_new_root->prev_sibling;
+            to_add = merge_trees(last_new_root, to_add, &output.stats);
+            if(last_root_prev_sibl == NULL) {
                 output.first_root = to_add;
                 to_add->prev_sibling = NULL;
             } else {
-                last_new_root->prev_sibling->next_sibling = to_add;
-                to_add->prev_sibling = last_new_root->prev_sibling;
+                last_root_prev_sibl->next_sibling = to_add;
+                to_add->prev_sibling = last_root_prev_sibl;
             }
         } else {
             last_new_root->next_sibling = to_add;
@@ -208,6 +235,9 @@ void merge(Heap *heap, Heap* added) {
         }
         to_add->next_sibling = NULL;
         last_new_root = to_add;
+        if(last_new_root->key <= output.min->key) {
+            output.min = last_new_root;
+        }
     }
 
     *heap = output;
@@ -226,47 +256,6 @@ void set_parent_of_siblings(BinomialTree *new_parent, BinomialTree *child) {
         child = child->next_sibling;
     }
 }
-
-/*void swap_nodes(BinomialTree *a, BinomialTree *b) {
-    BinomialTree old_a = *a;
-    BinomialTree old_b = *b;
-    a->next_sibling = old_b.next_sibling;
-    if(a->next_sibling) {
-        a->next_sibling->prev_sibling = a;
-    }
-    a->prev_sibling = old_b.prev_sibling;
-    if(a->prev_sibling) {
-        a->prev_sibling->next_sibling = a;
-    }
-    a->order = old_b.order;
-
-    b->next_sibling = old_a.next_sibling;
-    if (b->next_sibling) {
-        b->next_sibling->prev_sibling = b;
-    }
-    b->prev_sibling = old_a.prev_sibling;
-    if(b->prev_sibling) {
-        b->prev_sibling->next_sibling = b;
-    }
-    b->order = old_a.order;
-
-    if(a->parent == b) {
-        a->parent = old_b.parent;
-        b->parent = a;
-        a->child = b;
-        set_parent_of_siblings(b, old_a.child);
-    } else if (b->parent == a) {
-        b->parent = old_a.parent;
-        a->parent = b;
-        b->child = a;
-        set_parent_of_siblings(a, old_b.child);
-    } else {
-        a->parent = old_b.parent;
-        set_parent_of_siblings(a, old_b.child);
-        b->parent = old_a.parent;
-        set_parent_of_siblings(b, old_a.child);
-    }
-}*/
 
 void swap_parent_child(BinomialTree *p, BinomialTree *ch) {
     BinomialTree old_p = *p;
@@ -359,14 +348,21 @@ void swap_nodes(BinomialTree *a, BinomialTree *b) {
 }
 
 void lower_key(BinomialTree *node, double new_key, Heap *heap) {
+    heap->stats.decreases++;
+    if (LOG_OPERATIONS)
+        printf("lower key in %d (%f)\n", node->data, new_key);
     node->key = new_key;
     BinomialTree *swap_with = node;
-    while (swap_with->parent != NULL && swap_with->parent->key < new_key) {
+    while (node->parent != NULL && node->parent->key > new_key) {
+        BinomialTree *par = node->parent;
         heap->stats.parent_child_swaps++;
-        swap_with = swap_with->parent;
+        swap_nodes(node, node->parent);
+        if(heap->first_root == par) {
+            heap->first_root = node;
+        }
     }
-    if (node != swap_with) {
-        swap_nodes(node, swap_with);
+    if(node->key < heap->min->key) {
+        heap->min = node;
     }
 }
 
@@ -395,6 +391,8 @@ void dot_print_subtree(FILE *file, BinomialTree *tree) {
 void dot_printer(const char *filename, Heap *heap) {
     FILE *file = fopen(filename, "w");
     fprintf(file, "digraph G {\n");
+    if(heap->min)
+        fprintf(file, "%d [shape=doublecircle];\n", heap->min->data);
     dot_print_subtree(file, heap->first_root);
     fprintf(file, "}\n");
     fclose(file);

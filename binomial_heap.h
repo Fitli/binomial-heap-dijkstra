@@ -12,6 +12,10 @@ typedef struct BinomialHeapStats{
     int root_inserts;
     int tree_merges;
     int parent_child_swaps;
+    int inserts;
+    int pops;
+    int decreases;
+    int find_min_iters;
 } Stats;
 
 struct BinomialTree {
